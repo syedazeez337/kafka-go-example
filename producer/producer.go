@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -23,4 +24,27 @@ func main() {
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
+
+	count := 0
+
+	for {
+		select {
+		case <-signals:
+			return
+		default:
+			message := fmt.Sprintf("Message %d", count)
+			msg := &sarama.ProducerMessage{
+				Topic: "Message-topic",
+				Value: sarama.StringEncoder(message),
+			}
+
+			partition, offset, err := producer.SendMessage(msg)
+			if err != nil {
+				log.Printf("Failed to send message: %v\n", err)
+			} else {
+				log.Printf("Message sent: %s, Partition: %d, Offset: %d\n", message, partition, offset)
+			}
+			count++
+		}
+	}
 }
